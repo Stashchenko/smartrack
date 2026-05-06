@@ -1,0 +1,702 @@
+substitutions:
+  COLOR_TEXT: "0x21A321"
+  COLOR_ICON: "0x005300"
+
+esphome:
+  name: smartrack
+  friendly_name: SmartRack
+  min_version: 2026.4.3
+
+esp32:
+  board: esp32-s3-devkitc-1
+  cpu_frequency: 240MHz
+  variant: esp32s3
+  flash_size: 16MB
+  framework:
+    type: arduino
+    sdkconfig_options:
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+      CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB: "y"
+
+      # Moves instructions and read only data from flash into PSRAM on boot.
+      # Both enabled allows instructions to execute while a flash operation is in progress without needing to be placed in IRAM.
+      # Considerably speeds up mWW at the cost of using more PSRAM.
+      CONFIG_SPIRAM_RODATA: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
+
+      CONFIG_BT_ALLOCATION_FROM_SPIRAM_FIRST: "y"
+      CONFIG_BT_BLE_DYNAMIC_ENV_MEMORY: "y"
+
+      CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: "y"
+      CONFIG_MBEDTLS_SSL_PROTO_TLS1_3: "y"  # TLS1.3 support isn't enabled by default in IDF 5.1.5
+
+      # enable psram
+      CONFIG_SPIRAM_MODE_OCT: "y"
+      CONFIG_SPIRAM: "y"
+      CONFIG_ESPTOOLPY_FLASHMODE_QIO: "y"
+      CONFIG_ESPTOOLPY_FLASHFREQ_80M: "y"
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+
+psram:
+  mode: octal
+  speed: 80MHz
+  ignore_not_found: false
+
+# Enable logging
+logger:
+  level: WARN
+  logs:
+    sensor: ERROR
+    vl53l0x: ERROR
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "c4y/np3gKHLpz+vHLLs3nedIhYea63ZQehf4l8aXpR8="
+
+ota:
+  - platform: esphome
+    password: "791f8ce0b949e84102bef49980e3f69b"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "SmartRack"
+    password: "nsJBKQz8onCz"
+
+captive_portal:
+
+light:
+  - platform: esp32_rmt_led_strip
+    id: leds_internal
+    name: "LED Ring"
+    icon: "mdi:rectangle-outline"
+    pin: GPIO14
+    chipset: WS2812
+    max_refresh_rate: 20ms
+    num_leds: 24
+    rgb_order: GRB
+    rmt_symbols: 64
+    default_transition_length: 0ms
+    on_turn_on:
+      - light.control:
+          id: leds_internal
+          brightness: 40%
+          red: 0%
+          green: 32%
+          blue: 0%
+    effects:
+      - random:
+      - pulse:
+      - strobe:
+      - flicker:
+      - addressable_rainbow:
+      - addressable_color_wipe:
+      - addressable_scan:
+
+  - platform: esp32_rmt_led_strip
+    id: led_rack
+    name: "LED Rack"
+    icon: "mdi:cube-outline"
+    pin: GPIO13
+    chipset: WS2812
+    max_refresh_rate: 20ms
+    num_leds: 148
+    rgb_order: GRB
+    rmt_symbols: 192
+    default_transition_length: 0ms
+    on_turn_on:
+      - light.control:
+          id: led_rack
+          brightness: 70%
+          red: 0%
+          green: 32%
+          blue: 0%
+    effects:
+      - random:
+      - pulse:
+      - strobe:
+      - flicker:
+      - addressable_rainbow:
+      - addressable_color_wipe:
+      - addressable_scan:
+
+  - platform: monochromatic
+    output: backlight_output
+    icon: "mdi:brightness-6"
+    name: Display Backlight
+    id: backlight
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      then:
+        - lvgl.obj.update:
+            id: overlay
+            hidden: true
+        - lvgl.animimg.start:
+            id: matrix_animation
+    on_turn_off:
+      then:
+        - lvgl.obj.update:
+            id: overlay
+            hidden: false
+        - lvgl.animimg.stop:
+            id: matrix_animation
+
+
+font:
+  - file: "fonts/DejaVuSansMono.ttf"
+    id: dejavu
+    size: 21
+    bpp: 4
+  - file: "fonts/materialdesignicons-webfont.ttf"
+    id: material
+    size: 42
+    bpp: 4
+    glyphs: [
+      "\U000F07D0", # Home Assistant icon
+      "\U000F0EE0", #CPU
+      "\U000F061A", # chip
+      "\U000F050F", #Termometr
+      "\U000F035B", # memory
+      "\U000F08F3", # NAS
+    ]
+
+image:
+  - file: "images/matrix/1.jpeg"
+    id: frame_1
+    type: RGB
+  - file: "images/matrix/2.jpeg"
+    id: frame_2
+    type: RGB
+  - file: "images/matrix/3.jpeg"
+    id: frame_3
+    type: RGB
+  - file: "images/matrix/4.jpeg"
+    id: frame_4
+    type: RGB
+  - file: "images/matrix/5.jpeg"
+    id: frame_5
+    type: RGB
+  - file: "images/matrix/6.jpeg"
+    id: frame_6
+    type: RGB
+  - file: "images/matrix/7.jpeg"
+    id: frame_7
+    type: RGB
+  - file: "images/matrix/8.jpeg"
+    id: frame_8
+    type: RGB
+  - file: "images/matrix/9.jpeg"
+    id: frame_9
+    type: RGB
+  - file: "images/matrix/10.jpeg"
+    id: frame_10
+    type: RGB
+  - file: "images/matrix/11.jpeg"
+    id: frame_11
+    type: RGB
+  - file: "images/matrix/12.jpeg"
+    id: frame_12
+    type: RGB
+  - file: "images/matrix/13.jpeg"
+    id: frame_13
+    type: RGB
+  - file: "images/matrix/14.jpeg"
+    id: frame_14
+    type: RGB
+  - file: "images/matrix/15.jpeg"
+    id: frame_15
+    type: RGB
+  - file: "images/matrix/16.jpeg"
+    id: frame_16
+    type: RGB
+  - file: "images/matrix/17.jpeg"
+    id: frame_17
+    type: RGB
+  - file: "images/matrix/18.jpeg"
+    id: frame_18
+    type: RGB
+  - file: "images/matrix/19.jpeg"
+    id: frame_19
+    type: RGB
+  - file: "images/matrix/20.jpeg"
+    id: frame_20
+    type: RGB
+  - file: "images/matrix/21.jpeg"
+    id: frame_21
+    type: RGB
+  - file: "images/matrix/22.jpeg"
+    id: frame_22
+    type: RGB
+  - file: "images/matrix/23.jpeg"
+    id: frame_23
+    type: RGB
+  - file: "images/matrix/24.jpeg"
+    id: frame_24
+    type: RGB
+  - file: "images/matrix/25.jpeg"
+    id: frame_25
+    type: RGB
+  - file: "images/matrix/26.jpeg"
+    id: frame_26
+    type: RGB
+  - file: "images/matrix/27.jpeg"
+    id: frame_27
+    type: RGB
+  - file: "images/matrix/28.jpeg"
+    id: frame_28
+    type: RGB
+  - file: "images/matrix/29.jpeg"
+    id: frame_29
+    type: RGB
+  - file: "images/matrix/30.jpeg"
+    id: frame_30
+    type: RGB
+  - file: "images/matrix/31.jpeg"
+    id: frame_31
+    type: RGB
+  - file: "images/matrix/32.jpeg"
+    id: frame_32
+    type: RGB
+
+  - file: "images/matrix/33.jpeg"
+    id: frame_33
+    type: RGB
+
+  - file: "images/matrix/34.jpeg"
+    id: frame_34
+    type: RGB
+
+  - file: "images/matrix/35.jpeg"
+    id: frame_35
+    type: RGB
+
+  - file: "images/matrix/36.jpeg"
+    id: frame_36
+    type: RGB
+
+  - file: "images/matrix/37.jpeg"
+    id: frame_37
+    type: RGB
+
+  - file: "images/matrix/38.jpeg"
+    id: frame_38
+    type: RGB
+
+  - file: "images/matrix/39.jpeg"
+    id: frame_39
+    type: RGB
+
+  - file: "images/matrix/40.jpeg"
+    id: frame_40
+    type: RGB
+
+  - file: "images/matrix/41.jpeg"
+    id: frame_41
+    type: RGB
+
+  - file: "images/matrix/42.jpeg"
+    id: frame_42
+    type: RGB
+
+  - file: "images/matrix/43.jpeg"
+    id: frame_43
+    type: RGB
+
+  - file: "images/matrix/44.jpeg"
+    id: frame_44
+    type: RGB
+
+  - file: "images/matrix/45.jpeg"
+    id: frame_45
+    type: RGB
+
+  - file: "images/matrix/46.jpeg"
+    id: frame_46
+    type: RGB
+
+  - file: "images/matrix/47.jpeg"
+    id: frame_47
+    type: RGB
+
+  - file: "images/matrix/48.jpeg"
+    id: frame_48
+    type: RGB
+
+  - file: "images/matrix/49.jpeg"
+    id: frame_49
+    type: RGB
+
+  - file: "images/matrix/50.jpeg"
+    id: frame_50
+    type: RGB
+
+  - file: "images/matrix/51.jpeg"
+    id: frame_51
+    type: RGB
+
+  - file: "images/matrix/52.jpeg"
+    id: frame_52
+    type: RGB
+
+  - file: "images/matrix/53.jpeg"
+    id: frame_53
+    type: RGB
+
+  - file: "images/matrix/54.jpeg"
+    id: frame_54
+    type: RGB
+
+  - file: "images/matrix/55.jpeg"
+    id: frame_55
+    type: RGB
+
+  - file: "images/matrix/56.jpeg"
+    id: frame_56
+    type: RGB
+
+  - file: "images/matrix/57.jpeg"
+    id: frame_57
+    type: RGB
+
+# vl53l0x module
+i2c:
+  sda: GPIO6
+  scl: GPIO7
+  scan: true
+
+sensor:
+  - platform: vl53l0x
+    name: "Distance"
+    id: distance
+    update_interval: 300ms
+    internal: true
+    on_value:
+      then:
+        - lambda: |-
+            static int detect = 0;
+            static int miss = 0;
+            static bool state = false;
+
+            if (std::isnan(x)) {
+              miss++;
+              detect = 0;
+            } else if (x <= 0.5) {
+              detect++;
+              miss = 0;
+            } else {
+              miss++;
+              detect = 0;
+            }
+
+            if (detect >= 3) state = true;
+            if (miss >= 3) state = false;
+
+            id(occupancy).publish_state(state);
+
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: 60s
+    id: wifi_signal_db
+    entity_category: "diagnostic"
+    internal: true  # hide this sensor to HA,
+
+  - platform: copy
+    source_id: wifi_signal_db
+    name: "WiFi Signal Percent"
+    icon: mdi:wifi
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: " %"
+    entity_category: "diagnostic"
+    device_class: ""
+
+  # for lgvl
+  - platform: homeassistant
+    id: cpu_usage
+    entity_id: sensor.192_168_1_11_cpu_usage
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: cpu_usage_label
+            text: !lambda |-
+              char buf[10];
+              sprintf(buf, "%.0f%%", x);
+              return std::string(buf);
+  - platform: homeassistant
+    id: cpu_temp
+    entity_id: sensor.cpu_temperature_average
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: cpu_temp_label
+            text: !lambda |-
+              if (isnan(x)) return std::string("--°C");
+              char buf[10];
+              sprintf(buf, "%.0f°C", x);
+              return std::string(buf);
+  - platform: homeassistant
+    id: ram_usage
+    entity_id: sensor.192_168_1_11_memory_usage
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: ram_usage_label
+            text: !lambda |-
+              if (isnan(x)) return std::string("--%");
+              char buf[10];
+              sprintf(buf, "%.0f%%", x);
+              return std::string(buf);
+  - platform: homeassistant
+    id: nas_usage
+    entity_id: sensor.192_168_1_11_tank_data_disk_usage
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: nas_usage_label
+            text: !lambda |-
+              if (isnan(x)) return std::string("--%");
+              char buf[10];
+              sprintf(buf, "%.0f%%", x);
+              return std::string(buf);
+number:
+  - platform: template
+    name: "Occup. Fade Time"
+    id: occupancy_fade_time
+    icon: "mdi:timer-sand"
+    min_value: 5
+    max_value: 60
+    step: 5
+    initial_value: 20
+    unit_of_measurement: "s"
+    optimistic: true
+    entity_category: config
+
+
+binary_sensor:
+  - platform: template
+    name: "Occupancy"
+    id: occupancy
+    device_class: occupancy
+    filters:
+      - delayed_on_off:
+          time_on: 5ms
+          time_off: !lambda |-
+            return (uint32_t)(id(occupancy_fade_time).state * 1000);
+    on_press:
+      then:
+        - light.turn_on:
+            id: backlight
+            transition_length: 500ms
+        - light.turn_on:
+            id: leds_internal
+            brightness: 40%
+            transition_length: 1s
+    on_release:
+      then:
+        - light.turn_off:
+            id: backlight
+            transition_length: 500ms
+        - light.turn_off:
+            id: leds_internal
+            transition_length: 1s
+# Display
+output:
+  - platform: ledc
+    pin: GPIO21
+    id: backlight_output
+    inverted: true
+
+spi:
+  clk_pin: GPIO12
+  mosi_pin: GPIO11
+
+display:
+  - platform: mipi_spi
+    id: rack_display
+    model: ST7789V
+    buffer_size: 100%
+    dc_pin: GPIO16
+    cs_pin: GPIO17
+    reset_pin: GPIO18
+    dimensions:
+      height: 284
+      width: 76
+      offset_height: 18
+      offset_width: 82
+    update_interval: never
+    color_order: BGR
+
+
+lvgl:
+  log_level: WARN
+  bg_color: 0x000000
+  border_width: 0
+  rotation: 90
+  buffer_size: 25%
+  scrollbar_mode: "OFF"
+  scrollable: false
+  widgets:
+    - animimg:
+        align: TOP_LEFT
+        id: matrix_animation
+        src: [
+          frame_1, frame_2, frame_3, frame_4, frame_5, frame_6, frame_7, frame_8, frame_9, frame_10,
+          frame_11, frame_12, frame_13, frame_14, frame_15, frame_16, frame_17, frame_18, frame_19, frame_20,
+          frame_21, frame_22, frame_23, frame_24, frame_25, frame_26, frame_27, frame_28, frame_29, frame_30,
+          frame_31, frame_32, frame_33, frame_34, frame_35, frame_36, frame_37, frame_38, frame_39, frame_40,
+          frame_41, frame_42, frame_43, frame_44, frame_45, frame_46, frame_47, frame_48, frame_49, frame_50,
+          frame_51, frame_52, frame_53, frame_54, frame_55, frame_56
+        ]
+        duration: 6s
+    - obj:
+        id: cpu_usage_obj
+        width: 71
+        height: 76
+        y: 0
+        x: 0
+        align: TOP_LEFT
+        border_width: 2
+        border_color: $COLOR_ICON
+        radius: 5
+        scrollable: false
+        scrollbar_mode: "OFF"
+        bg_opa: TRANSP
+        widgets:
+          - label:
+              id: cpu_usage_icon
+              text: "\U000F0EE0"
+              align: TOP_LEFT
+              x: -1
+              y: -15
+              text_font: material
+              text_color: $COLOR_ICON
+          - label:
+              id: cpu_usage_label
+              bg_color: 0x000000
+              border_width: 2
+              bg_opa: 75%
+              text: "%"
+              align: CENTER
+              x: 0
+              y: 19
+              text_font: dejavu
+              text_color: $COLOR_TEXT
+    - obj:
+        id: cpu_temp_obj
+        width: 71
+        height: 76
+        y: 0
+        x: 71
+        align: TOP_LEFT
+        border_width: 2
+        border_color: $COLOR_ICON
+        radius: 5
+        scrollable: false
+        scrollbar_mode: "OFF"
+        bg_opa: TRANSP
+        widgets:
+          - label:
+              id: cpu_temp_icon
+              text: "\U000F050F"
+              align: TOP_LEFT
+              x: -1
+              y: -15
+              text_font: material
+              text_color: $COLOR_ICON
+          - label:
+              id: cpu_temp_label
+              bg_color: 0x000000
+              border_width: 2
+              bg_opa: 75%
+              text: "--°C"
+              align: CENTER
+              x: 0
+              y: 19
+              text_font: dejavu
+              text_color: $COLOR_TEXT
+    - obj:
+        id: ram_usage_obj
+        width: 71
+        height: 76
+        y: 0
+        x: 142
+        align: TOP_LEFT
+        border_width: 2
+        border_color: $COLOR_ICON
+        radius: 5
+        scrollable: false
+        scrollbar_mode: "OFF"
+        bg_opa: TRANSP
+        widgets:
+          - label:
+              id: ram_usage_icon
+              text: "\U000F035B"
+              align: TOP_LEFT
+              x: -1
+              y: -15
+              text_font: material
+              text_color: $COLOR_ICON
+          - label:
+              id: ram_usage_label
+              bg_color: 0x000000
+              border_width: 2
+              bg_opa: 75%
+              text: "--%"
+              align: CENTER
+              x: 0
+              y: 19
+              text_font: dejavu
+              text_color: $COLOR_TEXT
+    - obj:
+        id: nas_usage_obj
+        width: 71
+        height: 76
+        y: 0
+        x: 213
+        align: TOP_LEFT
+        border_width: 2
+        border_color: $COLOR_ICON
+        radius: 5
+        scrollable: false
+        scrollbar_mode: "OFF"
+        bg_opa: TRANSP
+        widgets:
+          - label:
+              id: nas_usage_icon
+              text: "\U000F08F3"
+              align: TOP_LEFT
+              x: -1
+              y: -15
+              text_font: material
+              text_color: $COLOR_ICON
+          - label:
+              id: nas_usage_label
+              bg_color: 0x000000
+              border_width: 2
+              bg_opa: 75%
+              text: "--%"
+              align: CENTER
+              x: 0
+              y: 19
+              text_font: dejavu
+              text_color: $COLOR_TEXT
+    - obj:
+        id: overlay
+        width: 284
+        height: 76
+        align: CENTER
+
+        bg_color: 0x000000
+        bg_opa: 100%          # 100% dark overlay
+        border_width: 0
+        radius: 0
+        hidden: true          # start hidden (screen ON)
+        scrollable: false
