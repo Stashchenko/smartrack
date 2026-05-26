@@ -69,6 +69,12 @@ wifi:
 
 captive_portal:
 
+globals:
+  - id: fan_should_run
+    type: bool
+    restore_value: true
+    initial_value: 'false'
+
 light:
   - platform: esp32_rmt_led_strip
     id: leds_internal
@@ -130,6 +136,7 @@ light:
     name: Display Backlight
     id: backlight
     restore_mode: ALWAYS_OFF
+    default_transition_length: 0s
     on_turn_on:
       then:
         - lvgl.obj.update:
@@ -261,103 +268,78 @@ image:
   - file: "images/matrix/32.jpeg"
     id: frame_32
     type: RGB
-
   - file: "images/matrix/33.jpeg"
     id: frame_33
     type: RGB
-
   - file: "images/matrix/34.jpeg"
     id: frame_34
     type: RGB
-
   - file: "images/matrix/35.jpeg"
     id: frame_35
     type: RGB
-
   - file: "images/matrix/36.jpeg"
     id: frame_36
     type: RGB
-
   - file: "images/matrix/37.jpeg"
     id: frame_37
     type: RGB
-
   - file: "images/matrix/38.jpeg"
     id: frame_38
     type: RGB
-
   - file: "images/matrix/39.jpeg"
     id: frame_39
     type: RGB
-
   - file: "images/matrix/40.jpeg"
     id: frame_40
     type: RGB
-
   - file: "images/matrix/41.jpeg"
     id: frame_41
     type: RGB
-
   - file: "images/matrix/42.jpeg"
     id: frame_42
     type: RGB
-
   - file: "images/matrix/43.jpeg"
     id: frame_43
     type: RGB
-
   - file: "images/matrix/44.jpeg"
     id: frame_44
     type: RGB
-
   - file: "images/matrix/45.jpeg"
     id: frame_45
     type: RGB
-
   - file: "images/matrix/46.jpeg"
     id: frame_46
     type: RGB
-
   - file: "images/matrix/47.jpeg"
     id: frame_47
     type: RGB
-
   - file: "images/matrix/48.jpeg"
     id: frame_48
     type: RGB
-
   - file: "images/matrix/49.jpeg"
     id: frame_49
     type: RGB
-
   - file: "images/matrix/50.jpeg"
     id: frame_50
     type: RGB
-
   - file: "images/matrix/51.jpeg"
     id: frame_51
     type: RGB
-
   - file: "images/matrix/52.jpeg"
     id: frame_52
     type: RGB
-
   - file: "images/matrix/53.jpeg"
     id: frame_53
     type: RGB
-
   - file: "images/matrix/54.jpeg"
     id: frame_54
     type: RGB
-
   - file: "images/matrix/55.jpeg"
     id: frame_55
     type: RGB
-
   - file: "images/matrix/56.jpeg"
     id: frame_56
     type: RGB
-
   - file: "images/matrix/57.jpeg"
     id: frame_57
     type: RGB
@@ -369,6 +351,24 @@ i2c:
   scan: true
 
 sensor:
+  - platform: pulse_counter
+    id: fan_rpm
+    unit_of_measurement: "RPM"
+    icon: "mdi:fan"
+    pin:
+      number: GPIO5
+      mode:
+        input: true
+        pullup: false
+    name: "Fan RPM"
+    update_interval: 5s
+    filters:
+      - multiply: 0.5
+    count_mode:
+      rising_edge: INCREMENT
+      falling_edge: DISABLE
+    accuracy_decimals: 0
+
   - platform: vl53l0x
     name: "Distance"
     id: distance
@@ -403,7 +403,6 @@ sensor:
     id: wifi_signal_db
     entity_category: "diagnostic"
     internal: true  # hide this sensor to HA,
-
   - platform: copy
     source_id: wifi_signal_db
     name: "WiFi Signal Percent"
@@ -429,7 +428,7 @@ sensor:
               return std::string(buf);
   - platform: homeassistant
     id: cpu_temp
-    entity_id: sensor.cpu_temperature_average
+    entity_id: sensor.192_168_1_11_package_id_0_temperature
     internal: true
     on_value:
       then:
@@ -479,6 +478,20 @@ number:
     optimistic: true
     entity_category: config
 
+  # New slider to set the lower threshold
+  - platform: template
+    name: "Fan Low Temp Target"
+    id: fan_low_temp
+    icon: "mdi:thermometer-low"
+    min_value: 40
+    max_value: 65
+    step: 1
+    initial_value: 57
+    unit_of_measurement: "°C"
+    optimistic: true
+    restore_value: true
+    entity_category: config
+
 
 binary_sensor:
   - platform: template
@@ -513,6 +526,102 @@ output:
     pin: GPIO21
     id: backlight_output
     inverted: true
+
+  - platform: ledc
+    pin: GPIO10
+    frequency: 25000Hz
+    id: fan_pwm_output
+    inverted: True
+    min_power: 0.3
+
+switch:
+  - platform: gpio
+    pin: GPIO8
+    id: fan_power_switch
+    name: "Fan Power"
+    restore_mode: ALWAYS_OFF
+    internal: true
+
+  - platform: template
+    name: "Auto Fan Control"
+    id: auto_fan_control
+    icon: "mdi:fan-auto"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+
+fan:
+  - platform: speed
+    output: fan_pwm_output
+    name: "Cooling Fan"
+    id: rack_cooling_fan
+    on_turn_on:
+      - switch.turn_on: fan_power_switch
+    on_turn_off:
+      - switch.turn_off: fan_power_switch
+
+interval:
+  # 1. State Check: Runs every 5 minutes to handle ON/OFF with dynamic numbers
+  - interval: 5min
+    then:
+      - if:
+          condition:
+            switch.is_on: auto_fan_control
+          then:
+            - if:
+                # Safe-fail: If temperature is missing (NaN), turn off the fan
+                condition:
+                  lambda: 'return std::isnan(id(cpu_temp).state);'
+                then:
+                  - lambda: 'id(fan_should_run) = false;'
+                  - fan.turn_off: rack_cooling_fan
+                else:
+                  - if:
+                      # IF THE FAN IS ON: Cut power if it drops below the low template slider
+                      condition:
+                        lambda: |-
+                          return id(fan_should_run) && (id(cpu_temp).state < id(fan_low_temp).state);
+                      then:
+                        - lambda: 'id(fan_should_run) = false;'
+                        - fan.turn_off: rack_cooling_fan
+                  - if:
+                      # IF THE FAN IS OFF: Turn on if it crosses low target + 5°C buffer
+                      condition:
+                        lambda: |-
+                          float trigger_on_temp = id(fan_low_temp).state + 5.0;
+                          return !id(fan_should_run) && (id(cpu_temp).state >= trigger_on_temp);
+                      then:
+                        - lambda: 'id(fan_should_run) = true;'
+
+  # 2. Speed Controller: Runs every 30 seconds to fine-tune speed using dynamic math
+  - interval: 30s
+    then:
+      - if:
+          condition:
+            and:
+              - switch.is_on: auto_fan_control
+              - lambda: 'return id(fan_should_run);'
+          then:
+            - fan.turn_on:
+                id: rack_cooling_fan
+                speed: !lambda |-
+                  float temp = id(cpu_temp).state;
+                  float low_limit = id(fan_low_temp).state;                
+                  
+                  if (std::isnan(temp) || temp <= low_limit) {
+                    return 20; // Lower clamp limit while waiting for the 5-min timer
+                  }
+                  
+                  if (temp >= 75.0) {
+                    return 100; // Upper limit
+                  }
+                  
+                  // Dynamic Linear scaling calculation based on your fixed 75°C ceiling
+                  float total_range = 75.0 - low_limit;
+                  
+                  if (total_range <= 0) return 100; // Guard clause against division by zero
+                  
+                  return 20 + (int)(((temp - low_limit) / total_range) * 80.0);
 
 spi:
   clk_pin: GPIO12
