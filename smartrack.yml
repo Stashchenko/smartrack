@@ -1,6 +1,7 @@
 substitutions:
   COLOR_TEXT: "0x21A321"
   COLOR_ICON: "0x005300"
+  CAROUSEL_INTERVAL: "5s"
 
 esphome:
   name: smartrack
@@ -139,11 +140,15 @@ light:
     default_transition_length: 0s
     on_turn_on:
       then:
+        - lvgl.page.show:
+            id: page_primary
+            animation: NONE
         - lvgl.obj.update:
             id: overlay
             hidden: true
         - lvgl.animimg.start:
             id: matrix_animation
+        - script.execute: page_carousel
     on_turn_off:
       then:
         - lvgl.obj.update:
@@ -151,6 +156,7 @@ light:
             hidden: false
         - lvgl.animimg.stop:
             id: matrix_animation
+        - script.stop: page_carousel
 
 
 font:
@@ -169,6 +175,9 @@ font:
       "\U000F050F", #Termometr
       "\U000F035B", # memory
       "\U000F08F3", # NAS
+      "\U000F0210", # Fan
+      "\U000F1799", # Smoke
+      "\U000F0085", # Battery Thermometer
     ]
 
 image:
@@ -377,11 +386,20 @@ sensor:
       rising_edge: INCREMENT
       falling_edge: DISABLE
     accuracy_decimals: 0
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: fan_rpm_label
+            text: !lambda |-
+              char buf[10];
+              sprintf(buf, "%.0f", x);
+              return std::string(buf);
 
   - platform: adc
     pin: GPIO2
     name: "Smoke Level"
     update_interval: 5s
+    device_class: ""
     filters:
       - calibrate_linear:
           - 0.15 -> 0.0
@@ -392,6 +410,14 @@ sensor:
       - multiply: 100
     unit_of_measurement: "%"
     icon: "mdi:smoke"
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: smoke_label
+            text: !lambda |-
+              char buf[10];
+              sprintf(buf, "%.0f%%", x);
+              return std::string(buf);
 
   - platform: vl53l0x
     name: "Distance"
@@ -488,6 +514,19 @@ sensor:
               if (isnan(x)) return std::string("--%");
               char buf[10];
               sprintf(buf, "%.0f%%", x);
+              return std::string(buf);
+  - platform: homeassistant
+    id: batt_temp
+    entity_id: sensor.daly_bms_temperature_battery
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: batt_temp_label
+            text: !lambda |-
+              if (isnan(x)) return std::string("--°C");
+              char buf[10];
+              sprintf(buf, "%.0f°C", x);
               return std::string(buf);
 number:
   - platform: template
@@ -597,6 +636,15 @@ fan:
       - switch.turn_on: fan_power_switch
     on_turn_off:
       - switch.turn_off: fan_power_switch
+script:
+  - id: page_carousel
+    mode: restart
+    then:
+      - delay: $CAROUSEL_INTERVAL
+      - lvgl.page.next:
+          animation: MOVE_BOTTOM
+          time: 1s
+      - script.execute: page_carousel
 
 interval:
   # 1. State Check: Runs every 5 minutes to handle ON/OFF with dynamic numbers
@@ -690,160 +738,268 @@ lvgl:
   buffer_size: 25%
   scrollbar_mode: "OFF"
   scrollable: false
-  widgets:
-    - animimg:
-        align: TOP_LEFT
-        id: matrix_animation
-        src: [
-          frame_1, frame_2, frame_3, frame_4, frame_5, frame_6, frame_7, frame_8, frame_9, frame_10,
-          frame_11, frame_12, frame_13, frame_14, frame_15, frame_16, frame_17, frame_18, frame_19, frame_20,
-          frame_21, frame_22, frame_23, frame_24, frame_25, frame_26, frame_27, frame_28, frame_29, frame_30,
-          frame_31, frame_32, frame_33, frame_34, frame_35, frame_36, frame_37, frame_38, frame_39, frame_40,
-          frame_41, frame_42, frame_43, frame_44, frame_45, frame_46, frame_47, frame_48, frame_49, frame_50,
-          frame_51, frame_52, frame_53, frame_54, frame_55, frame_56
-        ]
-        duration: 6s
-    - obj:
-        id: cpu_usage_obj
-        width: 71
-        height: 76
-        y: 0
-        x: 0
-        align: TOP_LEFT
-        border_width: 2
-        border_color: $COLOR_ICON
-        radius: 5
-        scrollable: false
-        scrollbar_mode: "OFF"
-        bg_opa: TRANSP
-        widgets:
-          - label:
-              id: cpu_usage_icon
-              text: "\U000F0EE0"
-              align: TOP_LEFT
-              x: -1
-              y: -15
-              text_font: material
-              text_color: $COLOR_ICON
-          - label:
-              id: cpu_usage_label
-              bg_color: 0x000000
-              border_width: 2
-              bg_opa: 75%
-              text: "%"
-              align: CENTER
-              x: 0
-              y: 19
-              text_font: dejavu
-              text_color: $COLOR_TEXT
-    - obj:
-        id: cpu_temp_obj
-        width: 71
-        height: 76
-        y: 0
-        x: 71
-        align: TOP_LEFT
-        border_width: 2
-        border_color: $COLOR_ICON
-        radius: 5
-        scrollable: false
-        scrollbar_mode: "OFF"
-        bg_opa: TRANSP
-        widgets:
-          - label:
-              id: cpu_temp_icon
-              text: "\U000F050F"
-              align: TOP_LEFT
-              x: -1
-              y: -15
-              text_font: material
-              text_color: $COLOR_ICON
-          - label:
-              id: cpu_temp_label
-              bg_color: 0x000000
-              border_width: 2
-              bg_opa: 75%
-              text: "--°C"
-              align: CENTER
-              x: 0
-              y: 19
-              text_font: dejavu
-              text_color: $COLOR_TEXT
-    - obj:
-        id: ram_usage_obj
-        width: 71
-        height: 76
-        y: 0
-        x: 142
-        align: TOP_LEFT
-        border_width: 2
-        border_color: $COLOR_ICON
-        radius: 5
-        scrollable: false
-        scrollbar_mode: "OFF"
-        bg_opa: TRANSP
-        widgets:
-          - label:
-              id: ram_usage_icon
-              text: "\U000F035B"
-              align: TOP_LEFT
-              x: -1
-              y: -15
-              text_font: material
-              text_color: $COLOR_ICON
-          - label:
-              id: ram_usage_label
-              bg_color: 0x000000
-              border_width: 2
-              bg_opa: 75%
-              text: "--%"
-              align: CENTER
-              x: 0
-              y: 19
-              text_font: dejavu
-              text_color: $COLOR_TEXT
-    - obj:
-        id: nas_usage_obj
-        width: 71
-        height: 76
-        y: 0
-        x: 213
-        align: TOP_LEFT
-        border_width: 2
-        border_color: $COLOR_ICON
-        radius: 5
-        scrollable: false
-        scrollbar_mode: "OFF"
-        bg_opa: TRANSP
-        widgets:
-          - label:
-              id: nas_usage_icon
-              text: "\U000F08F3"
-              align: TOP_LEFT
-              x: -1
-              y: -15
-              text_font: material
-              text_color: $COLOR_ICON
-          - label:
-              id: nas_usage_label
-              bg_color: 0x000000
-              border_width: 2
-              bg_opa: 75%
-              text: "--%"
-              align: CENTER
-              x: 0
-              y: 19
-              text_font: dejavu
-              text_color: $COLOR_TEXT
-    - obj:
-        id: overlay
-        width: 284
-        height: 76
-        align: CENTER
+  bottom_layer:
+    widgets:
+      - animimg:
+          align: TOP_LEFT
+          id: matrix_animation
+          src: [
+            frame_1, frame_2, frame_3, frame_4, frame_5, frame_6, frame_7, frame_8, frame_9, frame_10,
+            frame_11, frame_12, frame_13, frame_14, frame_15, frame_16, frame_17, frame_18, frame_19, frame_20,
+            frame_21, frame_22, frame_23, frame_24, frame_25, frame_26, frame_27, frame_28, frame_29, frame_30,
+            frame_31, frame_32, frame_33, frame_34, frame_35, frame_36, frame_37, frame_38, frame_39, frame_40,
+            frame_41, frame_42, frame_43, frame_44, frame_45, frame_46, frame_47, frame_48, frame_49, frame_50,
+            frame_51, frame_52, frame_53, frame_54, frame_55, frame_56
+          ]
+          duration: 6s
+  pages:
+    - id: page_primary
+      bg_opa: TRANSP
+      border_width: 0
+      widgets:
+        - obj:
+            id: cpu_usage_obj
+            width: 71
+            height: 76
+            y: 0
+            x: 0
+            align: TOP_LEFT
+            border_width: 2
+            border_color: $COLOR_ICON
+            radius: 5
+            scrollable: false
+            scrollbar_mode: "OFF"
+            bg_opa: TRANSP
+            widgets:
+              - label:
+                  id: cpu_usage_icon
+                  text: "\U000F0EE0"
+                  align: TOP_LEFT
+                  x: -1
+                  y: -15
+                  text_font: material
+                  text_color: $COLOR_ICON
+              - label:
+                  id: cpu_usage_label
+                  bg_color: 0x000000
+                  border_width: 2
+                  bg_opa: 75%
+                  text: "%"
+                  align: CENTER
+                  x: 0
+                  y: 19
+                  text_font: dejavu
+                  text_color: $COLOR_TEXT
+        - obj:
+            id: cpu_temp_obj
+            width: 71
+            height: 76
+            y: 0
+            x: 71
+            align: TOP_LEFT
+            border_width: 2
+            border_color: $COLOR_ICON
+            radius: 5
+            scrollable: false
+            scrollbar_mode: "OFF"
+            bg_opa: TRANSP
+            widgets:
+              - label:
+                  id: cpu_temp_icon
+                  text: "\U000F050F"
+                  align: TOP_LEFT
+                  x: -1
+                  y: -15
+                  text_font: material
+                  text_color: $COLOR_ICON
+              - label:
+                  id: cpu_temp_label
+                  bg_color: 0x000000
+                  border_width: 2
+                  bg_opa: 75%
+                  text: "--°C"
+                  align: CENTER
+                  x: 0
+                  y: 19
+                  text_font: dejavu
+                  text_color: $COLOR_TEXT
+        - obj:
+            id: ram_usage_obj
+            width: 71
+            height: 76
+            y: 0
+            x: 142
+            align: TOP_LEFT
+            border_width: 2
+            border_color: $COLOR_ICON
+            radius: 5
+            scrollable: false
+            scrollbar_mode: "OFF"
+            bg_opa: TRANSP
+            widgets:
+              - label:
+                  id: ram_usage_icon
+                  text: "\U000F035B"
+                  align: TOP_LEFT
+                  x: -1
+                  y: -15
+                  text_font: material
+                  text_color: $COLOR_ICON
+              - label:
+                  id: ram_usage_label
+                  bg_color: 0x000000
+                  border_width: 2
+                  bg_opa: 75%
+                  text: "--%"
+                  align: CENTER
+                  x: 0
+                  y: 19
+                  text_font: dejavu
+                  text_color: $COLOR_TEXT
+        - obj:
+            id: nas_usage_obj
+            width: 71
+            height: 76
+            y: 0
+            x: 213
+            align: TOP_LEFT
+            border_width: 2
+            border_color: $COLOR_ICON
+            radius: 5
+            scrollable: false
+            scrollbar_mode: "OFF"
+            bg_opa: TRANSP
+            widgets:
+              - label:
+                  id: nas_usage_icon
+                  text: "\U000F08F3"
+                  align: TOP_LEFT
+                  x: -1
+                  y: -15
+                  text_font: material
+                  text_color: $COLOR_ICON
+              - label:
+                  id: nas_usage_label
+                  bg_color: 0x000000
+                  border_width: 2
+                  bg_opa: 75%
+                  text: "--%"
+                  align: CENTER
+                  x: 0
+                  y: 19
+                  text_font: dejavu
+                  text_color: $COLOR_TEXT
 
-        bg_color: 0x000000
-        bg_opa: 100%          # 100% dark overlay
-        border_width: 0
-        radius: 0
-        hidden: true          # start hidden (screen ON)
-        scrollable: false
+    - id: page_secondary
+      bg_opa: TRANSP
+      border_width: 0
+      widgets:
+        - obj:
+            id: smoke_obj
+            width: 94
+            height: 76
+            y: 0
+            x: 0
+            align: TOP_LEFT
+            border_width: 2
+            border_color: $COLOR_ICON
+            radius: 5
+            scrollable: false
+            scrollbar_mode: "OFF"
+            bg_opa: TRANSP
+            widgets:
+              - label:
+                  text: "\U000F1799" # Smoke Icon
+                  align: TOP_LEFT
+                  x: 7
+                  y: -12
+                  text_font: material
+                  text_color: $COLOR_ICON
+              - label:
+                  id: smoke_label
+                  bg_color: 0x000000
+                  border_width: 2
+                  bg_opa: 75%
+                  text: "--%"
+                  align: CENTER
+                  x: 0
+                  y: 19
+                  text_font: dejavu
+                  text_color: $COLOR_TEXT
+        - obj:
+            id: rpm_obj
+            width: 94
+            height: 76
+            y: 0
+            x: 94
+            align: TOP_LEFT
+            border_width: 2
+            border_color: $COLOR_ICON
+            radius: 5
+            scrollable: false
+            scrollbar_mode: "OFF"
+            bg_opa: TRANSP
+            widgets:
+              - label:
+                  text: "\U000F0210" # Fan Icon
+                  align: TOP_LEFT
+                  x: 12
+                  y: -12
+                  text_font: material
+                  text_color: $COLOR_ICON
+              - label:
+                  id: fan_rpm_label
+                  bg_color: 0x000000
+                  border_width: 2
+                  bg_opa: 75%
+                  text: "--"
+                  align: CENTER
+                  x: 0
+                  y: 19
+                  text_font: dejavu
+                  text_color: $COLOR_TEXT
+        - obj:
+            id: batt_temp_obj
+            width: 96
+            height: 76
+            y: 0
+            x: 188
+            align: TOP_LEFT
+            border_width: 2
+            border_color: $COLOR_ICON
+            radius: 5
+            scrollable: false
+            scrollbar_mode: "OFF"
+            bg_opa: TRANSP
+            widgets:
+              - label:
+                  text: "\U000F0085" # Battery Temperature Icon
+                  align: TOP_LEFT
+                  x: 11
+                  y: -12
+                  text_font: material
+                  text_color: $COLOR_ICON
+              - label:
+                  id: batt_temp_label
+                  bg_color: 0x000000
+                  border_width: 2
+                  bg_opa: 75%
+                  text: "--°C"
+                  align: CENTER
+                  x: 0
+                  y: 19
+                  text_font: dejavu
+                  text_color: $COLOR_TEXT
+  top_layer:
+    widgets:
+      - obj:
+          id: overlay
+          width: 284
+          height: 76
+          align: CENTER
+          bg_color: 0x000000
+          bg_opa: 100%
+          border_width: 0
+          radius: 0
+          hidden: true
+          scrollable: false
