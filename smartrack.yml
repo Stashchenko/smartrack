@@ -46,12 +46,26 @@ psram:
 
 # Enable logging
 logger:
+  baud_rate: 0
   level: WARN
   logs:
     sensor: ERROR
     vl53l0x: ERROR
 # Enable Home Assistant API
 api:
+  # Only enable BLE tracking when wifi is up and api is connected
+  # Gives single-core ESP32-C3 devices time to manage wifi and authenticate with api
+  on_client_connected:
+    - esp32_ble_tracker.start_scan:
+        continuous: true
+  # Disable BLE tracking when there are no api connections live
+  on_client_disconnected:
+    if:
+      condition:
+        not:
+          api.connected:
+      then:
+        - esp32_ble_tracker.stop_scan:
   encryption:
     key: "c4y/np3gKHLpz+vHLLs3nedIhYea63ZQehf4l8aXpR8="
 
@@ -70,6 +84,25 @@ wifi:
 
 captive_portal:
 
+
+# bluetooth proxy
+esp32_ble:
+  max_connections: 3
+  connection_timeout: 20s
+
+esp32_ble_tracker:
+  scan_parameters:
+    # Don't auto start BLE scanning, we control it in the `api` block's automation.
+    continuous: False
+    active: True  # send scan-request packets to gather more info, like device name for some devices.
+    interval: 320ms  # default 320ms - how long to spend on each advert channel
+    window:   300ms  # default 30ms - how long to actually "listen" in each interval. Reduce this if device is unstable.
+    # If the device cannot keep up or becomes unstable, reduce the "window" setting. This may be
+    # required if your device is controlling other sensors or doing PWM for lights etc.
+
+bluetooth_proxy:
+  active: true
+
 globals:
   - id: fan_should_run
     type: bool
@@ -85,7 +118,7 @@ light:
     chipset: WS2812
     max_refresh_rate: 20ms
     num_leds: 24
-    rgb_order: GRB
+    channel_colors: GRB
     rmt_symbols: 64
     default_transition_length: 0ms
     on_turn_on:
@@ -112,7 +145,7 @@ light:
     chipset: WS2812
     max_refresh_rate: 20ms
     num_leds: 148
-    rgb_order: GRB
+    channel_colors: GRB
     rmt_symbols: 192
     default_transition_length: 0ms
     on_turn_on:
@@ -176,7 +209,7 @@ font:
       "\U000F035B", # memory
       "\U000F08F3", # NAS
       "\U000F0210", # Fan
-      "\U000F1799", # Smoke
+      "\U000F1799", # Smoke/Smog
       "\U000F0085", # Battery Thermometer
     ]
 
@@ -402,7 +435,7 @@ sensor:
     device_class: ""
     filters:
       - calibrate_linear:
-          - 0.15 -> 0.0
+          - 0.22 -> 0.0
           - 0.98 -> 1.0
       - clamp:
           min_value: 0.0
@@ -643,7 +676,7 @@ script:
       - delay: $CAROUSEL_INTERVAL
       - lvgl.page.next:
           animation: MOVE_BOTTOM
-          time: 1s
+          time: 800ms
       - script.execute: page_carousel
 
 interval:
