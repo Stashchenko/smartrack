@@ -15,6 +15,8 @@ esp32:
   flash_size: 16MB
   framework:
     type: arduino
+    advanced:
+      flash_chip: boya
     sdkconfig_options:
       CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
       CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
@@ -37,7 +39,7 @@ esp32:
       CONFIG_SPIRAM: "y"
       CONFIG_ESPTOOLPY_FLASHMODE_QIO: "y"
       CONFIG_ESPTOOLPY_FLASHFREQ_80M: "y"
-      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240: "y"
 
 psram:
   mode: octal
@@ -96,7 +98,7 @@ esp32_ble_tracker:
     continuous: False
     active: True  # send scan-request packets to gather more info, like device name for some devices.
     interval: 320ms  # default 320ms - how long to spend on each advert channel
-    window:   300ms  # default 30ms - how long to actually "listen" in each interval. Reduce this if device is unstable.
+    window: 300ms  # default 30ms - how long to actually "listen" in each interval. Reduce this if device is unstable.
     # If the device cannot keep up or becomes unstable, reduce the "window" setting. This may be
     # required if your device is controlling other sensors or doing PWM for lights etc.
 
@@ -204,186 +206,244 @@ font:
     bpp: 4
     glyphs: [
       "\U000F07D0", # Home Assistant icon
-      "\U000F0EE0", #CPU
+      "\U000F0EE0", # CPU
       "\U000F061A", # chip
-      "\U000F050F", #Termometr
+      "\U000F050F", # Thermometer
       "\U000F035B", # memory
       "\U000F08F3", # NAS
       "\U000F0210", # Fan
       "\U000F1799", # Smoke/Smog
       "\U000F0085", # Battery Thermometer
+      "\U000F0FE3", # swap-vertical-circle
     ]
 
 image:
-  - file: "images/matrix/1.jpeg"
+  - platform: file
+    file: "images/matrix/1.jpeg"
     id: frame_1
     type: RGB
-  - file: "images/matrix/2.jpeg"
+  - platform: file
+    file: "images/matrix/2.jpeg"
     id: frame_2
     type: RGB
-  - file: "images/matrix/3.jpeg"
+  - platform: file
+    file: "images/matrix/3.jpeg"
     id: frame_3
     type: RGB
-  - file: "images/matrix/4.jpeg"
+  - platform: file
+    file: "images/matrix/4.jpeg"
     id: frame_4
     type: RGB
-  - file: "images/matrix/5.jpeg"
+  - platform: file
+    file: "images/matrix/5.jpeg"
     id: frame_5
     type: RGB
-  - file: "images/matrix/6.jpeg"
+  - platform: file
+    file: "images/matrix/6.jpeg"
     id: frame_6
     type: RGB
-  - file: "images/matrix/7.jpeg"
+  - platform: file
+    file: "images/matrix/7.jpeg"
     id: frame_7
     type: RGB
-  - file: "images/matrix/8.jpeg"
+  - platform: file
+    file: "images/matrix/8.jpeg"
     id: frame_8
     type: RGB
-  - file: "images/matrix/9.jpeg"
+  - platform: file
+    file: "images/matrix/9.jpeg"
     id: frame_9
     type: RGB
-  - file: "images/matrix/10.jpeg"
+  - platform: file
+    file: "images/matrix/10.jpeg"
     id: frame_10
     type: RGB
-  - file: "images/matrix/11.jpeg"
+  - platform: file
+    file: "images/matrix/11.jpeg"
     id: frame_11
     type: RGB
-  - file: "images/matrix/12.jpeg"
+  - platform: file
+    file: "images/matrix/12.jpeg"
     id: frame_12
     type: RGB
-  - file: "images/matrix/13.jpeg"
+  - platform: file
+    file: "images/matrix/13.jpeg"
     id: frame_13
     type: RGB
-  - file: "images/matrix/14.jpeg"
+  - platform: file
+    file: "images/matrix/14.jpeg"
     id: frame_14
     type: RGB
-  - file: "images/matrix/15.jpeg"
+  - platform: file
+    file: "images/matrix/15.jpeg"
     id: frame_15
     type: RGB
-  - file: "images/matrix/16.jpeg"
+  - platform: file
+    file: "images/matrix/16.jpeg"
     id: frame_16
     type: RGB
-  - file: "images/matrix/17.jpeg"
+  - platform: file
+    file: "images/matrix/17.jpeg"
     id: frame_17
     type: RGB
-  - file: "images/matrix/18.jpeg"
+  - platform: file
+    file: "images/matrix/18.jpeg"
     id: frame_18
     type: RGB
-  - file: "images/matrix/19.jpeg"
+  - platform: file
+    file: "images/matrix/19.jpeg"
     id: frame_19
     type: RGB
-  - file: "images/matrix/20.jpeg"
+  - platform: file
+    file: "images/matrix/20.jpeg"
     id: frame_20
     type: RGB
-  - file: "images/matrix/21.jpeg"
+  - platform: file
+    file: "images/matrix/21.jpeg"
     id: frame_21
     type: RGB
-  - file: "images/matrix/22.jpeg"
+  - platform: file
+    file: "images/matrix/22.jpeg"
     id: frame_22
     type: RGB
-  - file: "images/matrix/23.jpeg"
+  - platform: file
+    file: "images/matrix/23.jpeg"
     id: frame_23
     type: RGB
-  - file: "images/matrix/24.jpeg"
+  - platform: file
+    file: "images/matrix/24.jpeg"
     id: frame_24
     type: RGB
-  - file: "images/matrix/25.jpeg"
+  - platform: file
+    file: "images/matrix/25.jpeg"
     id: frame_25
     type: RGB
-  - file: "images/matrix/26.jpeg"
+  - platform: file
+    file: "images/matrix/26.jpeg"
     id: frame_26
     type: RGB
-  - file: "images/matrix/27.jpeg"
+  - platform: file
+    file: "images/matrix/27.jpeg"
     id: frame_27
     type: RGB
-  - file: "images/matrix/28.jpeg"
+  - platform: file
+    file: "images/matrix/28.jpeg"
     id: frame_28
     type: RGB
-  - file: "images/matrix/29.jpeg"
+  - platform: file
+    file: "images/matrix/29.jpeg"
     id: frame_29
     type: RGB
-  - file: "images/matrix/30.jpeg"
+  - platform: file
+    file: "images/matrix/30.jpeg"
     id: frame_30
     type: RGB
-  - file: "images/matrix/31.jpeg"
+  - platform: file
+    file: "images/matrix/31.jpeg"
     id: frame_31
     type: RGB
-  - file: "images/matrix/32.jpeg"
+  - platform: file
+    file: "images/matrix/32.jpeg"
     id: frame_32
     type: RGB
-  - file: "images/matrix/33.jpeg"
+  - platform: file
+    file: "images/matrix/33.jpeg"
     id: frame_33
     type: RGB
-  - file: "images/matrix/34.jpeg"
+  - platform: file
+    file: "images/matrix/34.jpeg"
     id: frame_34
     type: RGB
-  - file: "images/matrix/35.jpeg"
+  - platform: file
+    file: "images/matrix/35.jpeg"
     id: frame_35
     type: RGB
-  - file: "images/matrix/36.jpeg"
+  - platform: file
+    file: "images/matrix/36.jpeg"
     id: frame_36
     type: RGB
-  - file: "images/matrix/37.jpeg"
+  - platform: file
+    file: "images/matrix/37.jpeg"
     id: frame_37
     type: RGB
-  - file: "images/matrix/38.jpeg"
+  - platform: file
+    file: "images/matrix/38.jpeg"
     id: frame_38
     type: RGB
-  - file: "images/matrix/39.jpeg"
+  - platform: file
+    file: "images/matrix/39.jpeg"
     id: frame_39
     type: RGB
-  - file: "images/matrix/40.jpeg"
+  - platform: file
+    file: "images/matrix/40.jpeg"
     id: frame_40
     type: RGB
-  - file: "images/matrix/41.jpeg"
+  - platform: file
+    file: "images/matrix/41.jpeg"
     id: frame_41
     type: RGB
-  - file: "images/matrix/42.jpeg"
+  - platform: file
+    file: "images/matrix/42.jpeg"
     id: frame_42
     type: RGB
-  - file: "images/matrix/43.jpeg"
+  - platform: file
+    file: "images/matrix/43.jpeg"
     id: frame_43
     type: RGB
-  - file: "images/matrix/44.jpeg"
+  - platform: file
+    file: "images/matrix/44.jpeg"
     id: frame_44
     type: RGB
-  - file: "images/matrix/45.jpeg"
+  - platform: file
+    file: "images/matrix/45.jpeg"
     id: frame_45
     type: RGB
-  - file: "images/matrix/46.jpeg"
+  - platform: file
+    file: "images/matrix/46.jpeg"
     id: frame_46
     type: RGB
-  - file: "images/matrix/47.jpeg"
+  - platform: file
+    file: "images/matrix/47.jpeg"
     id: frame_47
     type: RGB
-  - file: "images/matrix/48.jpeg"
+  - platform: file
+    file: "images/matrix/48.jpeg"
     id: frame_48
     type: RGB
-  - file: "images/matrix/49.jpeg"
+  - platform: file
+    file: "images/matrix/49.jpeg"
     id: frame_49
     type: RGB
-  - file: "images/matrix/50.jpeg"
+  - platform: file
+    file: "images/matrix/50.jpeg"
     id: frame_50
     type: RGB
-  - file: "images/matrix/51.jpeg"
+  - platform: file
+    file: "images/matrix/51.jpeg"
     id: frame_51
     type: RGB
-  - file: "images/matrix/52.jpeg"
+  - platform: file
+    file: "images/matrix/52.jpeg"
     id: frame_52
     type: RGB
-  - file: "images/matrix/53.jpeg"
+  - platform: file
+    file: "images/matrix/53.jpeg"
     id: frame_53
     type: RGB
-  - file: "images/matrix/54.jpeg"
+  - platform: file
+    file: "images/matrix/54.jpeg"
     id: frame_54
     type: RGB
-  - file: "images/matrix/55.jpeg"
+  - platform: file
+    file: "images/matrix/55.jpeg"
     id: frame_55
     type: RGB
-  - file: "images/matrix/56.jpeg"
+  - platform: file
+    file: "images/matrix/56.jpeg"
     id: frame_56
     type: RGB
-  - file: "images/matrix/57.jpeg"
+  - platform: file
+    file: "images/matrix/57.jpeg"
     id: frame_57
     type: RGB
 
@@ -393,7 +453,27 @@ i2c:
   scl: GPIO7
   scan: true
 
+one_wire:
+  - platform: gpio
+    pin: GPIO4
+
 sensor:
+  - platform: dallas_temp
+    name: "Converter Temperature"
+    icon: "mdi:swap-vertical-circle"
+    address: 0x25000000c78b4d28
+    id: rack_temperature
+    update_interval: 10s
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: converter_temp_label
+            text: !lambda |-
+              if (isnan(x)) return std::string("--°C");
+              char buf[10];
+              sprintf(buf, "%.0f°C", x);
+              return std::string(buf);
+
   - platform: pulse_counter
     id: fan_rpm
     unit_of_measurement: "RPM"
@@ -436,7 +516,7 @@ sensor:
     device_class: ""
     filters:
       - calibrate_linear:
-          - 0.40 -> 0.0
+          - 0.35 -> 0.0
           - 0.98 -> 1.0
       - clamp:
           min_value: 0.0
@@ -930,7 +1010,7 @@ lvgl:
       widgets:
         - obj:
             id: smoke_obj
-            width: 94
+            width: 71
             height: 76
             y: 0
             x: 0
@@ -945,8 +1025,8 @@ lvgl:
               - label:
                   text: "\U000F1799" # Smoke Icon
                   align: TOP_LEFT
-                  x: 7
-                  y: -12
+                  x: -1
+                  y: -15
                   text_font: material
                   text_color: $COLOR_ICON
               - label:
@@ -962,10 +1042,10 @@ lvgl:
                   text_color: $COLOR_TEXT
         - obj:
             id: rpm_obj
-            width: 94
+            width: 71
             height: 76
             y: 0
-            x: 94
+            x: 71
             align: TOP_LEFT
             border_width: 2
             border_color: $COLOR_ICON
@@ -977,8 +1057,8 @@ lvgl:
               - label:
                   text: "\U000F0210" # Fan Icon
                   align: TOP_LEFT
-                  x: 12
-                  y: -12
+                  x: -1
+                  y: -15
                   text_font: material
                   text_color: $COLOR_ICON
               - label:
@@ -994,10 +1074,10 @@ lvgl:
                   text_color: $COLOR_TEXT
         - obj:
             id: batt_temp_obj
-            width: 96
+            width: 71
             height: 76
             y: 0
-            x: 188
+            x: 142
             align: TOP_LEFT
             border_width: 2
             border_color: $COLOR_ICON
@@ -1009,12 +1089,45 @@ lvgl:
               - label:
                   text: "\U000F0085" # Battery Temperature Icon
                   align: TOP_LEFT
-                  x: 11
-                  y: -12
+                  x: -1
+                  y: -15
                   text_font: material
                   text_color: $COLOR_ICON
               - label:
                   id: batt_temp_label
+                  bg_color: 0x000000
+                  border_width: 2
+                  bg_opa: 75%
+                  text: "--°C"
+                  align: CENTER
+                  x: 0
+                  y: 19
+                  text_font: dejavu
+                  text_color: $COLOR_TEXT
+        - obj:
+            id: converter_temp_obj
+            width: 71
+            height: 76
+            y: 0
+            x: 213
+            align: TOP_LEFT
+            border_width: 2
+            border_color: $COLOR_ICON
+            radius: 5
+            scrollable: false
+            scrollbar_mode: "OFF"
+            bg_opa: TRANSP
+            widgets:
+              - label:
+                  id: converter_temp_icon
+                  text: "\U000F0FE3" # Convertor Icon
+                  align: TOP_LEFT
+                  x: -1
+                  y: -15
+                  text_font: material
+                  text_color: $COLOR_ICON
+              - label:
+                  id: converter_temp_label
                   bg_color: 0x000000
                   border_width: 2
                   bg_opa: 75%
